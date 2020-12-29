@@ -62,7 +62,6 @@ final class Branch
 		$entity = $this->getHydrateToEntity();
 		$return = [];
 		foreach ($this->branchStorage->getBranchList() as $branch) {
-			bd ($branch);
 			$return[] = new $entity($branch);
 		}
 
