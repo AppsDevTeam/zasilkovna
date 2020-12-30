@@ -15,8 +15,6 @@ final class Branch
 
 	private string $jsonEndpoint;
 
-	private string $carrierJsonEndpoint;
-
 	private ?string $hydrateToEntity = null;
 
 
@@ -27,7 +25,6 @@ final class Branch
 		}
 		$this->branchStorage = $branchStorage;
 		$this->jsonEndpoint = 'https://www.zasilkovna.cz/api/v3/' . $apiKey . '/branch.json';
-		$this->carrierJsonEndpoint = 'https://www.zasilkovna.cz/api/v4/' . $apiKey . '/branch.json?address-delivery';
 		$this->initializeStorage();
 	}
 
@@ -38,18 +35,11 @@ final class Branch
 			if (!($result = file_get_contents($this->jsonEndpoint))) {
 				throw new \RuntimeException('Failed to open JSON endpoint');
 			}
-			if (!($branches = \json_decode($result, true)) || !array_key_exists('data', $branches)) {
+			if (!($data = \json_decode($result, true)) || !array_key_exists('data', $data)) {
 				throw new \RuntimeException('Failed to decode JSON');
 			}
 
-			if (!($result = file_get_contents($this->carrierJsonEndpoint))) {
-				throw new \RuntimeException('Failed to open JSON endpoint');
-			}
-			if (!($carriers = \json_decode($result, true)) || !array_key_exists('data', $carriers)) {
-				throw new \RuntimeException('Failed to decode JSON');
-			}
-
-			$this->branchStorage->setBranchList($branches['data'] + $carriers['carriers']);
+			$this->branchStorage->setBranchList($data['data']);
 		}
 	}
 
