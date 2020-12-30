@@ -83,7 +83,6 @@ final class Label
 	public function generateLabelFull(TCPDF $pdf, PacketAttributes $packetAttributes): TCPDF
 	{
 		$returnRouting = $this->api->senderGetReturnRouting($packetAttributes->getEshop());
-
 		$branch = $this->branch->find($packetAttributes->getAddressId());
 		if ($branch === null) {
 			throw new \InvalidArgumentException('Branch "' . $packetAttributes->getAddressId() . '" does not exist.');
