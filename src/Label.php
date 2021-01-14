@@ -44,7 +44,7 @@ final class Label
 			$packageNumbers[] = $packetAttribute->getId();
 		}
 
-		$pdf = new TCPDF('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
+		$pdf = new TCPDF('P', PDF_UNIT, 'A4', true, 'UTF-8', false);
 		$pdf->SetCreator(PDF_CREATOR);
 		$pdf->SetAuthor('Adam Schubert');
 		$pdf->SetTitle(sprintf('Zasilkovna Label %s', implode(', ', $packageNumbers)));
