@@ -131,7 +131,7 @@ final class ApiRest implements IApi
 	 */
 	public function packetsLabelsPdf(array $packetIds, string $format, int $offset)
 	{
-		return $this->callApi(__FUNCTION__, ['packetIds' => $packetIds, 'format' => $format, 'offset' => $offset]);
+		return $this->callApi(__FUNCTION__, ['packetIds' => ['id' => $packetIds], 'format' => $format, 'offset' => $offset]);
 	}
 
 
@@ -207,6 +207,8 @@ final class ApiRest implements IApi
 		} else {
 			throw new \InvalidArgumentException('Invalid argument: Object must be a entity of type "' . IModel::class . '" or array, but "' . \gettype($object) . '" given.');
 		}
+
+		bd ($this->array2xml($method, $xmlArray));
 
 		$result = $this->xml2Array(
 			$this->post(
