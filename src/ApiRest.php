@@ -208,8 +208,6 @@ final class ApiRest implements IApi
 			throw new \InvalidArgumentException('Invalid argument: Object must be a entity of type "' . IModel::class . '" or array, but "' . \gettype($object) . '" given.');
 		}
 
-		bd ($this->array2xml($method, $xmlArray));
-
 		$result = $this->xml2Array(
 			$this->post(
 				$this->array2xml($method, $xmlArray)
