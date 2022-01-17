@@ -202,16 +202,16 @@ final class ApiRest implements IApi
 		if ($object instanceof IModel) {
 			$path = explode('\\', get_class($object));
 			$xmlArray[lcfirst(array_pop($path))] = $object->toArray();
+			
+			foreach ($xmlArray['packetAttributes'] as $key => $value) {
+				if (empty($value)) {
+					unset($xmlArray['packetAttributes'][$key]);
+				}
+			}
 		} elseif (is_array($object)) {
 			$xmlArray += $object;
 		} else {
 			throw new \InvalidArgumentException('Invalid argument: Object must be a entity of type "' . IModel::class . '" or array, but "' . \gettype($object) . '" given.');
-		}
-		
-		foreach ($xmlArray['packetAttributes'] as $key => $value) {
-			if (empty($value)) {
-				unset($xmlArray['packetAttributes'][$key]);
-			}
 		}
 
 		$result = $this->xml2Array(
