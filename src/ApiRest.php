@@ -159,7 +159,7 @@ final class ApiRest implements IApi
 	 */
 	private function array2xml(string $root, array $array): string
 	{
-		return ArrayToXml::convert($array, $root);
+		return ArrayToXml::convert($array, $root, true, '');
 	}
 
 
