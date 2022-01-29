@@ -19,8 +19,11 @@ final class ApiRest implements IApi
 
 	public function __construct(string $apiKey)
 	{
-		if (trim($apiKey) === '') {
-			throw new \RuntimeException('API key can not be empty.');
+		if (($apiKey = trim($apiKey)) === '') {
+			throw new \InvalidArgumentException('API key can not be empty.');
+		}
+		if (strlen($apiKey) < 5) {
+			throw new \InvalidArgumentException('API key "' . $apiKey . '" is too short.');
 		}
 		$this->apiKey = $apiKey;
 	}
@@ -226,16 +229,19 @@ final class ApiRest implements IApi
 
 
 	/**
-	 * @param mixed [] $result
+	 * @param mixed[] $result
 	 * @throws RestFault|PacketAttributesFault
 	 */
 	private function processResult(array $result): void
 	{
 		if (($result['status'] ?? '') === 'fault') {
 			if ($result['fault'] === 'PacketAttributesFault') {
-				throw new PacketAttributesFault($result['detail']['attributes']['fault'] ?? 'Unknown error.');
+				throw new PacketAttributesFault($result['detail']['attributes']['fault']);
 			}
-			throw new RestFault($result['fault'] . ': ' . ($result['string'] ?? 'Unknown error') . json_encode($result['detail'] ?? ''));
+			throw new RestFault(
+				$result['fault'] . ': ' . ($result['string'] ?? 'Unknown error')
+				. (isset($result['detail']) && $result['detail'] ? "\n" . 'Details: ' . json_encode($result['detail']) : '')
+			);
 		}
 	}
 }

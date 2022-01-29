@@ -7,6 +7,7 @@ namespace Salamek\Zasilkovna;
 
 use Salamek\Zasilkovna\Entity\IBranch;
 use Salamek\Zasilkovna\Entity\ZasilkovnaBranch;
+use Salamek\Zasilkovna\Model\BranchStorageFile;
 use Salamek\Zasilkovna\Model\IBranchStorage;
 
 final class Branch
@@ -17,20 +18,24 @@ final class Branch
 
 	private ?string $hydrateToEntity = ZasilkovnaBranch::class;
 
+	private bool $initialized = false;
 
-	public function __construct(string $apiKey, IBranchStorage $branchStorage)
+
+	public function __construct(string $apiKey, ?IBranchStorage $branchStorage = null)
 	{
 		if (trim($apiKey) === '') {
 			throw new \RuntimeException('API key can not be empty.');
 		}
-		$this->branchStorage = $branchStorage;
+		$this->branchStorage = $branchStorage ?? new BranchStorageFile;
 		$this->jsonEndpoint = 'https://www.zasilkovna.cz/api/v4/' . $apiKey . '/branch.json';
-		$this->initializeStorage();
 	}
 
 
 	public function initializeStorage(bool $force = false): void
 	{
+		if ($this->initialized === true && $force === false) {
+			return;
+		}
 		if ($force || !$this->branchStorage->isStorageValid()) {
 			if (!($result = file_get_contents($this->jsonEndpoint))) {
 				throw new \RuntimeException('Failed to open JSON endpoint');
@@ -41,6 +46,7 @@ final class Branch
 
 			$this->branchStorage->setBranchList($data['data']);
 		}
+		$this->initialized = true;
 	}
 
 
@@ -49,6 +55,7 @@ final class Branch
 	 */
 	public function getBranchList(): array
 	{
+		$this->initializeStorage();
 		$entity = $this->getHydrateToEntity();
 		$return = [];
 		foreach ($this->branchStorage->getBranchList() as $branch) {
@@ -61,6 +68,7 @@ final class Branch
 
 	public function find(int $id): ?IBranch
 	{
+		$this->initializeStorage();
 		if (($branch = $this->branchStorage->find($id)) === null) {
 			return null;
 		}
@@ -82,6 +90,7 @@ final class Branch
 	 */
 	public function findNearest(float $latitude, float $longitude, float $kilometersAround = 5, int $limit = 100): array
 	{
+		$this->initializeStorage();
 		$candidates = [];
 		$candidateArea = ($kilometersAround > 100 ? 100 : $kilometersAround) * 0.01;
 		foreach ($this->getBranchList() as $candidateBranch) {
