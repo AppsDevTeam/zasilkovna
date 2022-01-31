@@ -134,7 +134,7 @@ final class ApiRest implements IApi
 	 */
 	public function packetsLabelsPdf(array $packetIds, string $format, int $offset)
 	{
-		return $this->callApi(__FUNCTION__, ['packetIds' => $packetIds, 'format' => $format, 'offset' => $offset]);
+		return $this->callApi(__FUNCTION__, ['packetIds' => ['id' => $packetIds], 'format' => $format, 'offset' => $offset]);
 	}
 
 
@@ -162,7 +162,7 @@ final class ApiRest implements IApi
 	 */
 	private function array2xml(string $root, array $array): string
 	{
-		return ArrayToXml::convert($array, $root);
+		return ArrayToXml::convert($array, $root, true, '');
 	}
 
 
@@ -205,6 +205,12 @@ final class ApiRest implements IApi
 		if ($object instanceof IModel) {
 			$path = explode('\\', get_class($object));
 			$xmlArray[lcfirst(array_pop($path))] = $object->toArray();
+			
+			foreach ($xmlArray['packetAttributes'] as $key => $value) {
+				if (empty($value)) {
+					unset($xmlArray['packetAttributes'][$key]);
+				}
+			}
 		} elseif (is_array($object)) {
 			$xmlArray += $object;
 		} else {

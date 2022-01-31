@@ -16,7 +16,7 @@ final class Branch
 
 	private string $jsonEndpoint;
 
-	private ?string $hydrateToEntity = null;
+	private ?string $hydrateToEntity = ZasilkovnaBranch::class;
 
 	private bool $initialized = false;
 
@@ -27,7 +27,7 @@ final class Branch
 			throw new \RuntimeException('API key can not be empty.');
 		}
 		$this->branchStorage = $branchStorage ?? new BranchStorageFile;
-		$this->jsonEndpoint = 'https://www.zasilkovna.cz/api/v3/' . $apiKey . '/branch.json';
+		$this->jsonEndpoint = 'https://www.zasilkovna.cz/api/v4/' . $apiKey . '/branch.json';
 	}
 
 
@@ -59,7 +59,7 @@ final class Branch
 		$entity = $this->getHydrateToEntity();
 		$return = [];
 		foreach ($this->branchStorage->getBranchList() as $branch) {
-			$return[] = new $entity($branch);
+			$return[] = $entity ? new $entity($branch) : $branch;
 		}
 
 		return $return;
@@ -75,7 +75,7 @@ final class Branch
 
 		$entity = $this->getHydrateToEntity();
 
-		return new $entity($branch);
+		return $entity ? new $entity($branch) : $branch;
 	}
 
 
@@ -108,14 +108,15 @@ final class Branch
 	}
 
 
-	public function getHydrateToEntity(): string
+	public function getHydrateToEntity()
 	{
-		return $this->hydrateToEntity ?? ZasilkovnaBranch::class;
+		return $this->hydrateToEntity;
 	}
 
 
-	public function setHydrateToEntity(?string $hydrateToEntity): void
+	public function setHydrateToEntity(?string $hydrateToEntity): self
 	{
 		$this->hydrateToEntity = $hydrateToEntity;
+		return $this;
 	}
 }

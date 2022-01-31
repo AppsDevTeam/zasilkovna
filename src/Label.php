@@ -17,11 +17,14 @@ final class Label
 
 	private Branch $branch;
 
+	private Carrier $carrier;
 
-	public function __construct(IApi $api, Branch $branch)
+
+	public function __construct(IApi $api, Branch $branch, Carrier $carrier)
 	{
 		$this->api = $api;
 		$this->branch = $branch;
+		$this->carrier = $carrier;
 	}
 
 
@@ -29,7 +32,7 @@ final class Label
 	 * @param PacketAttributes[] $packetAttributes
 	 * @throws WrongDataException
 	 */
-	public function generateLabels(array $packetAttributes, int $decomposition = LabelDecomposition::FULL): string
+	public function generateLabels(array $packetAttributes, int $decomposition = LabelDecomposition::FULL, ?int $position = null): string
 	{
 		if (!in_array($decomposition, LabelDecomposition::$list, true)) {
 			throw new WrongDataException('Unknown $decomposition, because only "' . implode('", "', LabelDecomposition::$list) . '" are allowed');
@@ -52,7 +55,7 @@ final class Label
 		$pdf->setPrintHeader(false);
 		$pdf->setPrintFooter(false);
 
-		$quarterPosition = LabelPosition::TOP_LEFT;
+		$quarterPosition = $position ?? LabelPosition::TOP_LEFT;
 		/** @var PacketAttributes $packetAttribute */
 		foreach ($packetAttributes as $packetAttribute) {
 			switch ($decomposition) {
@@ -65,8 +68,9 @@ final class Label
 					if ($quarterPosition > LabelPosition::BOTTOM_RIGHT) {
 						$quarterPosition = LabelPosition::TOP_LEFT;
 					}
-					if ($quarterPosition == LabelPosition::TOP_LEFT) {
+					if ($position || $quarterPosition === LabelPosition::TOP_LEFT) {
 						$pdf->AddPage();
+						$position = null;
 					}
 
 					$pdf = $this->generateLabelQuarter($pdf, $packetAttribute, $quarterPosition);
@@ -82,9 +86,12 @@ final class Label
 	public function generateLabelFull(TCPDF $pdf, PacketAttributes $packetAttributes): TCPDF
 	{
 		$returnRouting = $this->api->senderGetReturnRouting($packetAttributes->getEshop());
-		$branch = $this->branch->find($packetAttributes->getAddressId());
-		if ($branch === null) {
-			throw new \InvalidArgumentException('Branch "' . $packetAttributes->getAddressId() . '" does not exist.');
+		$branchOrCarrier = $this->branch->find($packetAttributes->getAddressId());
+		if ($branchOrCarrier === null) {
+			$branchOrCarrier = $this->carrier->find($packetAttributes->getAddressId());
+			if ($branchOrCarrier === null) {
+				throw new \InvalidArgumentException('Branch or carrier "' . $packetAttributes->getAddressId() . '" does not exist.');
+			}
 		}
 
 		$x = 17;
@@ -100,8 +107,8 @@ final class Label
 		$pdf->SetFont($pdf->getFontFamily(), 'B', 31);
 		$pdf->Text($contactInfoX + 20, $contactInfoY + 12, $packetAttributes->getNumber());
 		$pdf->SetFont($pdf->getFontFamily(), '', 31);
-		$pdf->Text($contactInfoX, $contactInfoY + 27, $returnRouting->routingSegment[0]);
-		$pdf->Text($contactInfoX, $contactInfoY + 39, $returnRouting->routingSegment[1]);
+		$pdf->Text($contactInfoX, $contactInfoY + 27, $returnRouting['routingSegment'][0]);
+		$pdf->Text($contactInfoX, $contactInfoY + 39, $returnRouting['routingSegment'][1]);
 
 		// Sender text
 		$pdf->StartTransform();
@@ -155,12 +162,12 @@ final class Label
 
 		$pdf->SetFillColor(0, 0, 0);
 		$pdf->SetTextColor(255, 255, 255);
-		$pdf->MultiCell(80, 2, $branch->getLabelRouting(), ['LTRB' => ['width' => 1]], 'C', true, 0, $pTextX - 2, $pTextY + 32, false, 0, false, true, 15, 'T', true);
+		$pdf->MultiCell(80, 2, $branchOrCarrier->getLabelRouting(), ['LTRB' => ['width' => 1]], 'C', true, 0, $pTextX - 2, $pTextY + 32, false, 0, false, true, 15, 'T', true);
 		$pdf->SetFillColor(255, 255, 255);
 		$pdf->SetTextColor(0, 0, 0);
 
 		$pdf->SetFont($pdf->getFontFamily(), '', 29);
-		$pdf->Text($pTextX - 3, $pTextY + 50, $branch->getName());
+		$pdf->Text($pTextX - 3, $pTextY + 50, $branchOrCarrier->getName());
 
 		return $pdf;
 	}
@@ -195,7 +202,13 @@ final class Label
 		}
 
 		$returnRouting = $this->api->senderGetReturnRouting($packetAttributes->getEshop());
-		$branch = $this->branch->find($packetAttributes->getAddressId());
+		$branchOrCarrier = $this->branch->find($packetAttributes->getAddressId());
+		if ($branchOrCarrier === null) {
+			$branchOrCarrier = $this->carrier->find($packetAttributes->getAddressId());
+			if ($branchOrCarrier === null) {
+				throw new \InvalidArgumentException('Branch or carrier "' . $packetAttributes->getAddressId() . '" does not exist.');
+			}
+		}
 
 		// Logo
 		$pdf->Image(__DIR__ . '/../assets/logo.png', 3 + $xPositionOffset, 50 + $yPositionOffset, 60, '', 'PNG');
@@ -221,8 +234,8 @@ final class Label
 		$pdf->SetFont($pdf->getFontFamily(), 'B', 16);
 		$pdf->Text(22 + $xPositionOffset, 10 + $yPositionOffset, $packetAttributes->getNumber());
 		$pdf->SetFont($pdf->getFontFamily(), '', 16);
-		$pdf->Text(12 + $xPositionOffset, 20 + $yPositionOffset, $returnRouting->routingSegment[0]);
-		$pdf->Text(12 + $xPositionOffset, 27 + $yPositionOffset, $returnRouting->routingSegment[1]);
+		$pdf->Text(12 + $xPositionOffset, 20 + $yPositionOffset, $returnRouting['routingSegment'][0]);
+		$pdf->Text(12 + $xPositionOffset, 27 + $yPositionOffset, $returnRouting['routingSegment'][1]);
 
 		// Barcode
 		$x = 65 + $xPositionOffset;
@@ -254,12 +267,12 @@ final class Label
 
 		$pdf->SetFillColor(0, 0, 0);
 		$pdf->SetTextColor(255, 255, 255);
-		$pdf->MultiCell(42, 2, $branch->getLabelRouting(), ['LTRB' => ['width' => 1]], 'C', true, 0, 73 + $xPositionOffset, 70 + $yPositionOffset, false, 0, false, true, 7, 'T', true);
+		$pdf->MultiCell(42, 2, $branchOrCarrier->getLabelRouting(), ['LTRB' => ['width' => 1]], 'C', true, 0, 73 + $xPositionOffset, 70 + $yPositionOffset, false, 0, false, true, 7, 'T', true);
 		$pdf->SetFillColor(255, 255, 255);
 		$pdf->SetTextColor(0, 0, 0);
 
 		$pdf->SetFont($pdf->getFontFamily(), '', 16);
-		$pdf->Text(73 + $xPositionOffset, 82 + $yPositionOffset, $branch->getName());
+		$pdf->Text(73 + $xPositionOffset, 82 + $yPositionOffset, $branchOrCarrier->getName());
 
 		return $pdf;
 	}
