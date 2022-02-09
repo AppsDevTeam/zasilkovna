@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Salamek\Zasilkovna;
 
 
+use Salamek\Zasilkovna\Exception\ConnectException;
 use Salamek\Zasilkovna\Exception\PacketAttributesFault;
 use Salamek\Zasilkovna\Exception\RestFault;
 use Salamek\Zasilkovna\Model\ClaimAttributes;
@@ -176,7 +177,9 @@ final class ApiRest implements IApi
 		return json_decode(json_encode($simplexml), true, 512, JSON_THROW_ON_ERROR);
 	}
 
-
+	/**
+	 * @throws ConnectException
+	 */
 	private function post(string $xml): string
 	{
 		$context = stream_context_create([
@@ -187,9 +190,15 @@ final class ApiRest implements IApi
 			],
 		]);
 
-		return file_get_contents('https://www.zasilkovna.cz/api/rest', false, $context);
-	}
+		$response = file_get_contents('https://www.zasilkovna.cz/api/rest', false, $context);
 
+		if ($response) {
+			return $response;
+		}
+
+		preg_match( "#HTTP/[0-9\.]+\s+([0-9]+)#", $http_response_header[0], $out);
+		throw new ConnectException('Unsuccessful attempt to retrieve data from packeta API.', intval($out[1]));
+	}
 
 	/**
 	 * @param IModel|array|mixed $object
