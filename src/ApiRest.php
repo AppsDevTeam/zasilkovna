@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Salamek\Zasilkovna;
 
+use GuzzleHttp\Client;
 use Salamek\Zasilkovna\Exception\PacketAttributesFault;
 use Salamek\Zasilkovna\Exception\RestFault;
 use Salamek\Zasilkovna\Model\ClaimAttributes;
@@ -203,7 +204,7 @@ final class ApiRest implements IApi
      */
     private function array2xml(string $root, array $array): string
     {
-        return ArrayToXml::convert($array, $root);
+        return ArrayToXml::convert($array, $root, true, '');
     }
 
 
@@ -220,15 +221,14 @@ final class ApiRest implements IApi
 
     private function post(string $xml): string
     {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => 'Content-type: text/xml',
-                'content' => $xml,
-            ],
-        ]);
-
-        return file_get_contents('https://www.zasilkovna.cz/api/rest', false, $context);
+		return (string)(new Client(
+			[
+				'base_uri' => 'https://www.zasilkovna.cz/api/rest',
+				'headers' => ['Accept' => 'text/xml']
+			]
+		))
+			->post('', ['body' => $xml])
+			->getBody();
     }
 
 
@@ -257,8 +257,8 @@ final class ApiRest implements IApi
             throw new \InvalidArgumentException($message);
         }
 
-                $xmlData = $this->array2xml($method, $xmlArray);
-                $xmlResponse = $this->post($xmlData);
+		$xmlData = $this->array2xml($method, $xmlArray);
+		$xmlResponse = $this->post($xmlData);
 
         $result = $this->xml2Array($xmlResponse);
         $this->processResult($result);
