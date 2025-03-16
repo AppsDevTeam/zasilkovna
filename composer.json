@@ -24,7 +24,7 @@
 	"require": {
 		"php": ">=7.4.0",
 		"tecnickcom/tcpdf": "^6.3",
-		"spatie/array-to-xml": "^2.15",
+		"spatie/array-to-xml": "^2.15|^3.0",
 		"guzzlehttp/guzzle": "^6.0|^7.0"
 	},
 	"require-dev": {
