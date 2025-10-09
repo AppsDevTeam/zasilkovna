@@ -10,6 +10,8 @@ final class Carrier
 {
 	private string $jsonEndpoint;
 
+	private IBranchStorage $branchStorage;
+
 	public function __construct(string $apiKey, IBranchStorage $branchStorage)
 	{
 		if (trim($apiKey) === '') {
